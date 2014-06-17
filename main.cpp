@@ -8,9 +8,9 @@
 // 2) Add "C:\opencv\build\bin\Debug" to %PATH% Environment Variables.
 //
 #include <opencv2/opencv.hpp>
-#pragma comment(lib, "C:/opencv/build/lib/Debug/opencv_core249d.lib")
-#pragma comment(lib, "C:/opencv/build/lib/Debug/opencv_imgproc249d.lib")
-#pragma comment(lib, "C:/opencv/build/lib/Debug/opencv_highgui249d.lib")
+#pragma comment(lib, "D:/OpenCV2.4.4/opencv/build/x86/vc10/lib/opencv_core244d.lib")
+#pragma comment(lib, "D:/OpenCV2.4.4/opencv/build/x86/vc10/lib/opencv_imgproc244d.lib")
+#pragma comment(lib, "D:/OpenCV2.4.4/opencv/build/x86/vc10/lib/opencv_highgui244d.lib")
 
 static cv::Mat frameMat;
 static enum MenuAction {
@@ -31,6 +31,47 @@ static enum MouseAction {
 	MOUSE_ACTION_FINISH
 } mouseAction = MOUSE_ACTION_FINISH;
 static cv::Point ltPoint, rbPoint;
+
+int RGBImgThr(cv::Mat& roiMat)
+{
+	//if (NULL == roiMat)
+	//{
+	//	return -1;
+	//}
+
+	double b0 = refButtonColor[0];
+	double g0 = refButtonColor[1];
+	double r0 = refButtonColor[2];
+	double b1 = objButtonColor[0];
+	double g1 = objButtonColor[1];
+	double r1 = objButtonColor[2];
+
+	double th = r1 * r1 + g1 * g1 + b1 * b1 - r0 * r0 - g0 * g0 - b0 * b0;
+	double aR = 2 * (r1 - r0);
+	double bG = 2 * (g1 - g0);
+	double cB = 2 * (b1 - b0);
+	for (int r = 0; r < roiMat.rows; ++r) 
+	{
+		for (int c = 0; c < roiMat.cols; ++c) 
+		{
+			uchar *p = roiMat.ptr(r, c);
+			if(aR * p[2] + bG * p[1] + cB * p[0] >= th)
+			{
+				p[0] = 255;
+				p[1] = 255;
+				p[2] = 255;
+			}
+			else
+			{
+				p[0] = 0;
+				p[1] = 0;
+				p[2] = 0;
+			}
+		}
+	}
+
+	return 0;
+}
 
 static void onMouse(int ev, int x, int y, int flags, void*)
 {
@@ -115,10 +156,12 @@ int main(int argc, char *argv[])
         if (menuAction == MENU_ACTION_ROI) {
             cv::Mat roiMat = frameMat(cv::Rect(ltPoint, rbPoint));
             if (roiMat.total() != 0) {
-                cv::Mat global;
-                cv::threshold(roiMat, global, 100, 255, CV_THRESH_BINARY_INV);
-                //cv::adaptiveThreshold(roiMat, global, 255, CV_ADAPTIVE_THRESH_MEAN_C, CV_THRESH_BINARY_INV, 25, 10); 
-                cv::imshow("ROI", global);
+				cv::Mat global = roiMat.clone();
+				RGBImgThr(global);
+				cv::imshow("ROI", global);
+                //cv::threshold(roiMat, global, 100, 255, CV_THRESH_BINARY_INV);
+                ////cv::adaptiveThreshold(roiMat, global, 255, CV_ADAPTIVE_THRESH_MEAN_C, CV_THRESH_BINARY_INV, 25, 10); 
+                //cv::imshow("ROI", global);
             }
         }
 		
