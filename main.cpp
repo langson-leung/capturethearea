@@ -73,6 +73,86 @@ int RGBImgThr(cv::Mat& roiMat)
 	return 0;
 }
 
+double RGB2HPoint(cv::Scalar rgbPoint)
+{
+	double r = rgbPoint[2];
+	double g = rgbPoint[1];
+	double b = rgbPoint[0];
+
+	double max = (r > g) ? (r > b ? r : b) : (g > b ? g : b);
+	double min = (r < g) ? (r < b ? r : b) : (g < b ? g : b);
+	double v = max;
+	double s = v - min;
+	double z = (s < 0.0000001 && s > -0.0000001) ? 1.0 : 0.0;
+	s += z;
+	double h = ((r == v) ? ((g-b)/s) : ( (g == v) ? (2+(b-r)/s) : (4+(r-g)/s )))/6; 
+	h = h < -0.0000001 ? (h + 1) : h;
+	h = ( (z == 1.0) ? 0.0 : 1.0 ) * h;
+
+	return h;
+}
+
+int RGB2HImgThr(cv::Mat& roiMat)
+{
+	double h0 = RGB2HPoint(refButtonColor);
+	double h1 = RGB2HPoint(objButtonColor);
+
+	double th = 0.5 * (h0 + h1);
+	if (h0 < h1)
+	{
+		for (int r = 0; r < roiMat.rows; ++r) 
+		{
+			for (int c = 0; c < roiMat.cols; ++c) 
+			{
+				uchar *p = roiMat.ptr(r, c);
+				cv::Scalar pointScalar = cv::Scalar(p[0], p[1], p[2]);
+				double h = RGB2HPoint(pointScalar);
+
+				if(h >= th)
+				{
+					p[0] = 255;
+					p[1] = 255;
+					p[2] = 255;
+				}
+				else
+				{
+					p[0] = 0;
+					p[1] = 0;
+					p[2] = 0;
+				}
+			}
+		}
+	} 
+	else
+	{
+		for (int r = 0; r < roiMat.rows; ++r) 
+		{
+			for (int c = 0; c < roiMat.cols; ++c) 
+			{
+				uchar *p = roiMat.ptr(r, c);
+				cv::Scalar pointScalar = cv::Scalar(p[0], p[1], p[2]);
+				double h = RGB2HPoint(pointScalar);
+
+				if(h <= th)
+				{
+					p[0] = 255;
+					p[1] = 255;
+					p[2] = 255;
+				}
+				else
+				{
+					p[0] = 0;
+					p[1] = 0;
+					p[2] = 0;
+				}
+			}
+		}
+	}
+	
+
+	return 0;
+}
+
 static void onMouse(int ev, int x, int y, int flags, void*)
 {
 	switch (ev) {
@@ -157,7 +237,8 @@ int main(int argc, char *argv[])
             cv::Mat roiMat = frameMat(cv::Rect(ltPoint, rbPoint));
             if (roiMat.total() != 0) {
 				cv::Mat global = roiMat.clone();
-				RGBImgThr(global);
+				//RGBImgThr(global);
+				RGB2HImgThr(global);
 				cv::imshow("ROI", global);
                 //cv::threshold(roiMat, global, 100, 255, CV_THRESH_BINARY_INV);
                 ////cv::adaptiveThreshold(roiMat, global, 255, CV_ADAPTIVE_THRESH_MEAN_C, CV_THRESH_BINARY_INV, 25, 10); 
