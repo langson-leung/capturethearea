@@ -237,8 +237,11 @@ int main(int argc, char *argv[])
         if (menuAction == MENU_ACTION_ROI) {
             cv::Mat roiMat = frameMat(cv::Rect(ltPoint, rbPoint));
             if (roiMat.total() != 0) {
+				//*****①RGB转HSV*****
 				cv::Mat global = roiMat.clone();
 				cv::cvtColor(roiMat, global, CV_BGR2HSV);
+
+				//*****②提取H分量*****
 				cv::Mat hImg(global.rows, global.cols, CV_8UC1);
 				cv::Mat sImg = hImg.clone();
 				cv::Mat vImg = hImg.clone();
@@ -247,12 +250,29 @@ int main(int argc, char *argv[])
 				hsv.push_back(sImg);
 				hsv.push_back(vImg);
 				cv::split(global, hsv);
+
+				//*****③计算分割阈值*****
 				double h0 = RGB2HPoint(refButtonColor);
 				double h1 = RGB2HPoint(objButtonColor);
 				double th = 255 * 0.5 * (h0 + h1);
+
+				//*****④二值化*****
 				int type = (h0 < h1) ? 0 : 1;
 				cv::threshold(hImg, hImg, th, 255, type);
+
+				//*****⑤抚平毛刺：闭运算+开运算*****
+				cv::Mat bwImg = hImg.clone();
+				cv::Mat element3(3, 3, CV_8U, cv::Scalar(1));
+				morphologyEx(hImg, bwImg, CV_MOP_CLOSE, element3);
+				morphologyEx(bwImg, hImg, CV_MOP_OPEN, element3);
+
+				//*****⑥提取边界*****
+				bwImg = hImg.clone();
+				cv::vector<cv::vector<cv::Point>> contours;
+				cv::findContours(bwImg, contours, CV_RETR_EXTERNAL, CV_CHAIN_APPROX_SIMPLE);
+				cv::drawContours(roiMat, contours, -1, cv::Scalar(222, 0, 0));
 				cv::imshow("ROI", hImg);
+
 
 				//cv::Mat global = roiMat.clone();
 				//cvtColor(roiMat, global, CV_BGR2HSV);
