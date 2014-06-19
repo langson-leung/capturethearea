@@ -153,6 +153,7 @@ int RGB2HImgThr(cv::Mat& roiMat)
 	return 0;
 }
 
+
 static void onMouse(int ev, int x, int y, int flags, void*)
 {
 	switch (ev) {
@@ -237,9 +238,33 @@ int main(int argc, char *argv[])
             cv::Mat roiMat = frameMat(cv::Rect(ltPoint, rbPoint));
             if (roiMat.total() != 0) {
 				cv::Mat global = roiMat.clone();
-				//RGBImgThr(global);
-				RGB2HImgThr(global);
-				cv::imshow("ROI", global);
+				cv::cvtColor(roiMat, global, CV_BGR2HSV);
+				cv::Mat hImg(global.rows, global.cols, CV_8UC1);
+				cv::Mat sImg = hImg.clone();
+				cv::Mat vImg = hImg.clone();
+				cv::vector<cv::Mat> hsv;
+				hsv.push_back(hImg);
+				hsv.push_back(sImg);
+				hsv.push_back(vImg);
+				cv::split(global, hsv);
+				double h0 = RGB2HPoint(refButtonColor);
+				double h1 = RGB2HPoint(objButtonColor);
+				double th = 255 * 0.5 * (h0 + h1);
+				int type = (h0 < h1) ? 0 : 1;
+				cv::threshold(hImg, hImg, th, 255, type);
+				cv::imshow("ROI", hImg);
+
+				//cv::Mat global = roiMat.clone();
+				//cvtColor(roiMat, global, CV_BGR2HSV);
+				//cv::Mat hImg(global.rows, global.cols, CV_8UC1);
+				//cv::Mat sImg = hImg.clone();
+				//cv::Mat vImg = hImg.clone();
+				//cvSplit(&global, &hImg, &sImg, &vImg, NULL);
+				////cvSplit(&global, &hImg, &sImg, &vImg, 0);
+				//cv::threshold(hImg, hImg, 100, 255, CV_THRESH_BINARY_INV);
+				////RGBImgThr(global);
+				////RGB2HImgThr(global);
+				//cv::imshow("ROI", hImg);
                 //cv::threshold(roiMat, global, 100, 255, CV_THRESH_BINARY_INV);
                 ////cv::adaptiveThreshold(roiMat, global, 255, CV_ADAPTIVE_THRESH_MEAN_C, CV_THRESH_BINARY_INV, 25, 10); 
                 //cv::imshow("ROI", global);
